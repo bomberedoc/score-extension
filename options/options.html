@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Sports Scores - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🏆</span>
+        <h1>Live Sports Scores</h1>
+      </div>
+      <p class="subtitle">Customize your experience</p>
+    </header>
+
+    <main class="main-content">
+      <!-- Notifications Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <span class="section-icon">🔔</span>
+          <h2>Notifications</h2>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Enable Notifications</label>
+            <span class="setting-description">Get notified about goals, wickets, and match events</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notifications-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Update Interval</label>
+            <span class="setting-description">How often to check for score updates</span>
+          </div>
+          <select id="update-interval" class="setting-select">
+            <option value="30">30 seconds</option>
+            <option value="60" selected>1 minute</option>
+            <option value="300">5 minutes</option>
+            <option value="600">10 minutes</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Favorite Teams Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <span class="section-icon">⭐</span>
+          <h2>Favorite Teams</h2>
+        </div>
+        <p class="section-description">Add teams you want to follow. You'll get notifications for their matches.</p>
+        
+        <div class="teams-input-section">
+          <div class="input-group">
+            <input 
+              type="text" 
+              id="team-input" 
+              placeholder="Enter team name (e.g., Manchester United, India)"
+              class="text-input"
+            >
+            <button id="add-team-btn" class="btn-primary">Add</button>
+          </div>
+          
+          <div id="favorite-teams-list" class="teams-list">
+            <!-- Teams will be added here dynamically -->
+          </div>
+          
+          <div id="empty-teams" class="empty-teams">
+            <span class="empty-icon">🏷️</span>
+            <p>No favorite teams yet</p>
+            <span class="empty-subtext">Add teams to get personalized notifications</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- API Configuration Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <span class="section-icon">🔑</span>
+          <h2>API Configuration</h2>
+        </div>
+        <p class="section-description">Add your API keys for cricket scores. Football scores work without any API key!</p>
+        
+        <div class="api-config">
+          <div class="api-item">
+            <div class="api-info">
+              <label class="api-label">CricAPI Key (Required for Cricket)</label>
+              <span class="api-description">
+                1. Visit <a href="https://cricketdata.org/" target="_blank">cricketdata.org</a> (formerly cricapi.com)<br>
+                2. Click "Sign Up" to create a free account<br>
+                3. Copy your API key from the dashboard<br>
+                4. Paste it below 👇<br>
+                <strong style="color: #00d4ff;">Note:</strong> Free tier includes 100 API calls/day
+              </span>
+            </div>
+            <input 
+              type="password" 
+              id="cricket-api-key" 
+              placeholder="Paste your CricAPI key here (e.g., 12345678-1234-1234-1234-123456789abc)"
+              class="text-input api-input"
+            >
+          </div>
+          
+          <div class="api-status" id="api-status">
+            <span class="status-icon">⚠️</span>
+            <span class="status-text">Cricket API key required - get one free at cricketdata.org</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Default Preferences Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <span class="section-icon">⚙️</span>
+          <h2>Default Preferences</h2>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Default Sport</label>
+            <span class="setting-description">Which sport to show when opening the extension</span>
+          </div>
+          <select id="default-sport" class="setting-select">
+            <option value="football">⚽ Football</option>
+            <option value="cricket">🏏 Cricket</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Default Filter</label>
+            <span class="setting-description">Which matches to show by default</span>
+          </div>
+          <select id="default-filter" class="setting-select">
+            <option value="live">🔴 Live Matches</option>
+            <option value="today">📅 Today's Matches</option>
+            <option value="upcoming">⏳ Upcoming</option>
+            <option value="finished">✅ Finished</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section class="settings-section">
+        <div class="section-header">
+          <span class="section-icon">ℹ️</span>
+          <h2>About</h2>
+        </div>
+        
+        <div class="about-content">
+          <div class="about-item">
+            <span class="about-label">Version</span>
+            <span class="about-value">1.0.0</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">Data Sources</span>
+            <span class="about-value">
+              <a href="https://www.openligadb.de/" target="_blank">OpenLigaDB</a> (Football),
+              <a href="https://cricketdata.org/" target="_blank">CricketData</a> (Cricket)
+            </span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">Support</span>
+            <span class="about-value">
+              <a href="mailto:support@livescoresextension.com">Contact Support</a>
+            </span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <button id="reset-btn" class="btn-secondary">Reset to Defaults</button>
+      <div class="save-status" id="save-status">
+        <span class="status-icon">✓</span>
+        <span>Changes saved automatically</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
