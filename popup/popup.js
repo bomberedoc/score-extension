@@ -191,10 +191,6 @@ class LiveScoresPopup {
     // Using TheSportsDB - free API key (3) for demo purposes
     const apiKey = '3';
     
-    // Get today's date for filtering
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    
     // League IDs for TheSportsDB
     const leagues = [
       { id: '4791', name: 'Indian Super League', country: 'India' },
@@ -211,44 +207,56 @@ class LiveScoresPopup {
     
     for (const league of leagues) {
       try {
-        // Use eventsday.php to get today's matches
-        const response = await fetch(
-          `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsday.php?d=${todayStr}&l=${league.id}`
-        );
-        
-        if (response.ok) {
+        // Pull multiple windows so leagues with no "today" matches (e.g., ISL between rounds)
+        // still appear in upcoming/finished filters.
+        const endpoints = [
+          `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsnextleague.php?id=${league.id}`,
+          `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventspastleague.php?id=${league.id}`
+        ];
+
+        for (const url of endpoints) {
+          const response = await fetch(url);
+          if (!response.ok) continue;
+
           const data = await response.json();
-          if (data.events && data.events.length > 0) {
-            const processedMatches = data.events.map(match => {
-              const matchDate = new Date(match.strTimestamp || `${match.dateEvent}T${match.strTime || '00:00:00'}`);
-              const isLive = match.strProgress && match.strProgress !== 'FT' && match.strProgress !== 'NS';
-              const isFinished = match.strProgress === 'FT' || match.intHomeScore !== null;
-              
-              return {
-                id: `sdb_${match.idEvent}`,
-                sport: 'football',
-                league: league.name,
-                leagueIcon: '⚽',
-                homeTeam: match.strHomeTeam,
-                awayTeam: match.strAwayTeam,
-                homeScore: match.intHomeScore ?? '-',
-                awayScore: match.intAwayScore ?? '-',
-                status: isLive ? 'live' : isFinished ? 'finished' : 'upcoming',
-                time: match.strTime ? match.strTime.substring(0, 5) : matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                venue: match.strVenue || '',
-                matchDateTime: match.strTimestamp || `${match.dateEvent}T${match.strTime || '00:00:00'}`,
-                isLive: isLive,
-                minute: match.strProgress || ''
-              };
-            });
-            
-            this.matches.push(...processedMatches);
-          }
+          if (!data.events || data.events.length === 0) continue;
+
+          const processedMatches = data.events.map(match => this.mapSportsDBFootballMatch(match, league.name));
+          this.matches.push(...processedMatches);
         }
       } catch (err) {
         console.warn(`Failed to load ${league.name} from SportsDB:`, err);
       }
     }
+  }
+
+  mapSportsDBFootballMatch(match, fallbackLeagueName) {
+    const matchDateTime = match.strTimestamp || `${match.dateEvent || ''}T${match.strTime || '00:00:00'}`;
+    const matchDate = new Date(matchDateTime);
+    const progress = (match.strProgress || '').toUpperCase();
+    const statusText = (match.strStatus || '').toLowerCase();
+
+    const isLive = progress.includes("'") || progress === 'HT' || statusText.includes('live');
+    const isFinished = progress === 'FT' || statusText.includes('finished') || (match.intHomeScore !== null && match.intAwayScore !== null);
+
+    return {
+      id: `sdb_${match.idEvent}`,
+      sport: 'football',
+      league: match.strLeague || fallbackLeagueName,
+      leagueIcon: '⚽',
+      homeTeam: match.strHomeTeam,
+      awayTeam: match.strAwayTeam,
+      homeScore: match.intHomeScore ?? '-',
+      awayScore: match.intAwayScore ?? '-',
+      status: isLive ? 'live' : isFinished ? 'finished' : 'upcoming',
+      time: Number.isNaN(matchDate.getTime())
+        ? 'TBD'
+        : matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      venue: match.strVenue || '',
+      matchDateTime,
+      isLive,
+      minute: progress || ''
+    };
   }
 
   async loadCricketMatches() {
