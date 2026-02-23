@@ -8,6 +8,8 @@ class LiveScoresPopup {
     this.matches = [];
     this.refreshInterval = null;
     this.leaguesModal = null;
+    this.sportsDbCache = new Map();
+    this.sportsDbRateLimitedUntil = 0;
     
     this.init();
   }
@@ -15,7 +17,7 @@ class LiveScoresPopup {
   async init() {
     this.cacheElements();
     this.bindEvents();
-    this.loadPreferences();
+    await this.loadPreferences();
     await this.loadMatches();
     this.startAutoRefresh();
   }
@@ -65,18 +67,22 @@ class LiveScoresPopup {
   }
 
   loadPreferences() {
-    chrome.storage.sync.get(['preferredSport', 'matchFilter'], (result) => {
-      if (result.preferredSport) {
-        this.switchSport(result.preferredSport);
-      }
-      if (result.matchFilter) {
-        this.currentFilter = result.matchFilter;
-        this.elements.matchFilter.value = result.matchFilter;
-      }
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(['preferredSport', 'matchFilter'], (result) => {
+        if (result.preferredSport) {
+          this.switchSport(result.preferredSport, { skipLoad: true });
+        }
+        if (result.matchFilter) {
+          this.currentFilter = result.matchFilter;
+          this.elements.matchFilter.value = result.matchFilter;
+        }
+        resolve();
+      });
     });
   }
 
-  switchSport(sport) {
+  switchSport(sport, options = {}) {
+    const { skipLoad = false } = options;
     this.currentSport = sport;
     
     // Update tab UI
@@ -88,7 +94,9 @@ class LiveScoresPopup {
     chrome.storage.sync.set({ preferredSport: sport });
     
     // Load matches for selected sport
-    this.loadMatches();
+    if (!skipLoad) {
+      this.loadMatches();
+    }
   }
 
   async loadMatches() {
@@ -190,40 +198,67 @@ class LiveScoresPopup {
   async loadSportsDBMatches() {
     // Using TheSportsDB - free API key (3) for demo purposes
     const apiKey = '3';
-    
-    // League IDs for TheSportsDB
+
+    // Avoid hammering SportsDB when demo key rate limit is hit.
+    if (Date.now() < this.sportsDbRateLimitedUntil) {
+      return;
+    }
+
+    // Keep SportsDB only for leagues that OpenLigaDB does not reliably cover.
     const leagues = [
       { id: '4791', name: 'Indian Super League', country: 'India' },
-      { id: '4328', name: 'Premier League', country: 'England' },
-      { id: '4335', name: 'La Liga', country: 'Spain' },
-      { id: '4332', name: 'Serie A', country: 'Italy' },
-      { id: '4331', name: 'Bundesliga', country: 'Germany' },
-      { id: '4334', name: 'Ligue 1', country: 'France' },
       { id: '4480', name: 'MLS', country: 'USA' },
       { id: '4346', name: 'Brasileirao', country: 'Brazil' },
       { id: '4350', name: 'Eredivisie', country: 'Netherlands' },
       { id: '4337', name: 'Primeira Liga', country: 'Portugal' }
     ];
-    
+
+    const endpointType = this.currentFilter === 'finished'
+      ? 'eventspastleague.php'
+      : this.currentFilter === 'upcoming'
+        ? 'eventsnextleague.php'
+        : 'eventsday.php';
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
     for (const league of leagues) {
       try {
-        // Pull multiple windows so leagues with no "today" matches (e.g., ISL between rounds)
-        // still appear in upcoming/finished filters.
-        const endpoints = [
-          `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsnextleague.php?id=${league.id}`,
-          `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventspastleague.php?id=${league.id}`
-        ];
+        const cacheKey = `${league.id}_${endpointType}_${todayStr}`;
+        const cached = this.sportsDbCache.get(cacheKey);
 
-        for (const url of endpoints) {
+        let events = null;
+        if (cached && cached.expiresAt > Date.now()) {
+          events = cached.events;
+        } else {
+          const url = endpointType === 'eventsday.php'
+            ? `https://www.thesportsdb.com/api/v1/json/${apiKey}/${endpointType}?d=${todayStr}&l=${league.id}`
+            : `https://www.thesportsdb.com/api/v1/json/${apiKey}/${endpointType}?id=${league.id}`;
+
           const response = await fetch(url);
-          if (!response.ok) continue;
+
+          if (response.status === 429) {
+            // Back off for 10 minutes when throttled.
+            this.sportsDbRateLimitedUntil = Date.now() + (10 * 60 * 1000);
+            break;
+          }
+
+          if (!response.ok) {
+            continue;
+          }
 
           const data = await response.json();
-          if (!data.events || data.events.length === 0) continue;
+          events = data.events || [];
 
-          const processedMatches = data.events.map(match => this.mapSportsDBFootballMatch(match, league.name));
-          this.matches.push(...processedMatches);
+          this.sportsDbCache.set(cacheKey, {
+            events,
+            expiresAt: Date.now() + (10 * 60 * 1000)
+          });
         }
+
+        if (!events || events.length === 0) continue;
+
+        const processedMatches = events.map(match => this.mapSportsDBFootballMatch(match, league.name));
+        this.matches.push(...processedMatches);
       } catch (err) {
         console.warn(`Failed to load ${league.name} from SportsDB:`, err);
       }
