@@ -261,6 +261,11 @@ class LiveScoresPopup {
           const processedMatches = events.map(match => this.mapSportsDBFootballMatch(match, league.name));
           this.matches.push(...processedMatches);
         }
+
+        if (!events || events.length === 0) continue;
+
+        const processedMatches = events.map(match => this.mapSportsDBFootballMatch(match, league.name));
+        this.matches.push(...processedMatches);
       } catch (err) {
         console.warn(`Failed to load ${league.name} from SportsDB:`, err);
       }
