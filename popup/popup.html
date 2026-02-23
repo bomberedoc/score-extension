@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Sports Scores</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🏆</span>
+        <h1>Live Scores</h1>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+    </header>
+
+    <!-- Sport Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-sport="football">
+        <span class="tab-icon">⚽</span>
+        Football
+      </button>
+      <button class="tab-btn" data-sport="cricket">
+        <span class="tab-icon">🏏</span>
+        Cricket
+      </button>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+      <select id="match-filter">
+        <option value="live">🔴 Live Matches</option>
+        <option value="today">📅 Today's Matches</option>
+        <option value="upcoming">⏳ Upcoming</option>
+        <option value="finished">✅ Finished</option>
+      </select>
+      <button id="refresh-btn" class="icon-btn" title="Refresh">🔄</button>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Loading scores...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error hidden">
+      <span class="error-icon">⚠️</span>
+      <p id="error-message">Failed to load scores</p>
+      <button id="retry-btn" class="btn-primary">Try Again</button>
+    </div>
+
+    <!-- Matches Container -->
+    <div id="matches-container" class="matches-container">
+      <!-- Matches will be dynamically inserted here -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state hidden">
+      <span class="empty-icon">📭</span>
+      <p>No matches found</p>
+      <span class="empty-subtext">Check back later for updates!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span id="last-updated">Last updated: Never</span>
+      <button id="view-all-btn" class="text-btn">View All Leagues →</button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
