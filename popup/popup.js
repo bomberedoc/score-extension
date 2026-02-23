@@ -213,46 +213,53 @@ class LiveScoresPopup {
       { id: '4337', name: 'Primeira Liga', country: 'Portugal' }
     ];
 
-    const endpointType = this.currentFilter === 'finished'
-      ? 'eventspastleague.php'
+    const endpointTypes = this.currentFilter === 'finished'
+      ? ['eventspastleague.php']
       : this.currentFilter === 'upcoming'
-        ? 'eventsnextleague.php'
-        : 'eventsday.php';
+        ? ['eventsnextleague.php']
+        : ['eventspastleague.php', 'eventsnextleague.php'];
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    let isThrottled = false;
 
     for (const league of leagues) {
+      if (isThrottled) break;
+
       try {
-        const cacheKey = `${league.id}_${endpointType}_${todayStr}`;
-        const cached = this.sportsDbCache.get(cacheKey);
+        for (const endpointType of endpointTypes) {
+          const cacheKey = `${league.id}_${endpointType}`;
+          const cached = this.sportsDbCache.get(cacheKey);
 
-        let events = null;
-        if (cached && cached.expiresAt > Date.now()) {
-          events = cached.events;
-        } else {
-          const url = endpointType === 'eventsday.php'
-            ? `https://www.thesportsdb.com/api/v1/json/${apiKey}/${endpointType}?d=${todayStr}&l=${league.id}`
-            : `https://www.thesportsdb.com/api/v1/json/${apiKey}/${endpointType}?id=${league.id}`;
+          let events = null;
+          if (cached && cached.expiresAt > Date.now()) {
+            events = cached.events;
+          } else {
+            const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/${endpointType}?id=${league.id}`;
+            const response = await fetch(url);
 
-          const response = await fetch(url);
+            if (response.status === 429) {
+              // Back off for 10 minutes when throttled.
+              this.sportsDbRateLimitedUntil = Date.now() + (10 * 60 * 1000);
+              isThrottled = true;
+              break;
+            }
 
-          if (response.status === 429) {
-            // Back off for 10 minutes when throttled.
-            this.sportsDbRateLimitedUntil = Date.now() + (10 * 60 * 1000);
-            break;
+            if (!response.ok) {
+              continue;
+            }
+
+            const data = await response.json();
+            events = data.events || [];
+
+            this.sportsDbCache.set(cacheKey, {
+              events,
+              expiresAt: Date.now() + (10 * 60 * 1000)
+            });
           }
 
-          if (!response.ok) {
-            continue;
-          }
+          if (!events || events.length === 0) continue;
 
-          const data = await response.json();
-          events = data.events || [];
-
-          this.sportsDbCache.set(cacheKey, {
-            events,
-            expiresAt: Date.now() + (10 * 60 * 1000)
-          });
+          const processedMatches = events.map(match => this.mapSportsDBFootballMatch(match, league.name));
+          this.matches.push(...processedMatches);
         }
 
         if (!events || events.length === 0) continue;
