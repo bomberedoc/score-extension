@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Live Sports Scores",
+  "version": "1.0.0",
+  "description": "Get live cricket and football scores right in your browser. Track your favorite teams and matches effortlessly!",
+  "permissions": [
+    "storage",
+    "notifications",
+    "alarms",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://api.openligadb.de/*",
+    "https://www.openligadb.de/*",
+    "https://api.cricapi.com/*",
+    "https://www.thesportsdb.com/*"
+  ],
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Live Sports Scores"
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
